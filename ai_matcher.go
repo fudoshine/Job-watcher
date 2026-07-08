@@ -77,6 +77,17 @@ func loadResume() error {
 
 // scoreJobWithAI sends job details to the configured AI provider
 func scoreJobWithAI(job Job, cfg AIConfig) (int, string, error) {
+	company := strings.TrimSpace(extractCompany(job))
+	if company == "" {
+		company = job.Source
+	}
+	description := strings.TrimSpace(job.Description)
+	if description == "" {
+		description = "N/A"
+	} else {
+		description = truncateText(description, 1200)
+	}
+
 	prompt := fmt.Sprintf(`Role: Hiring Manager. 
 Task: Evaluate match for a Fresher/Entry-Level Candidate (0-2 YOE).
 
@@ -85,6 +96,7 @@ Candidate Resume:
 
 Job Title: %s
 Company: %s
+Job Description: %s
 
 CRITICAL RULES:
 1. IF Job Title contains "Senior", "Staff", "Lead", "Principal", "Architect", or requires >2 years experience: SCORE MUST BE 0.
@@ -92,7 +104,7 @@ CRITICAL RULES:
 3. IGNORE skill match if Rule #1 is violated.
 
 Constraint: Return ONLY a JSON object with "score" (0-100) and "reason" (short string).
-Example: {"score": 0, "reason": "Senior role (3+ years) not for fresher"}`, resumeText, job.Title, job.Source)
+Example: {"score": 0, "reason": "Senior role (3+ years) not for fresher"}`, resumeText, job.Title, company, description)
 
 	if strings.ToLower(cfg.Provider) == "gemini" {
 		return callGeminiAI(cfg, prompt)
@@ -191,4 +203,15 @@ func parseJSONResponse(raw string) (int, string, error) {
 	}
 
 	return result.Score, result.Reason, nil
+}
+
+func truncateText(text string, maxRunes int) string {
+	if maxRunes <= 0 {
+		return ""
+	}
+	runes := []rune(text)
+	if len(runes) <= maxRunes {
+		return text
+	}
+	return strings.TrimSpace(string(runes[:maxRunes])) + "..."
 }

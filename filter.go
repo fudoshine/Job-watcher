@@ -35,11 +35,11 @@ func initFilters(cfg Config) {
 	}
 }
 
-// matchesKeyword checks if title contains any of the keywords
-func matchesKeyword(title string) bool {
-	title = strings.ToLower(title)
+// matchesKeyword checks if text contains any of the keywords
+func matchesKeyword(text string) bool {
+	text = strings.ToLower(text)
 	for _, k := range keywords {
-		if strings.Contains(title, strings.ToLower(k)) {
+		if strings.Contains(text, strings.ToLower(k)) {
 			return true
 		}
 	}
@@ -90,15 +90,16 @@ func extractExperience(text string) int {
 
 // isEligibleJob checks all filters
 func isEligibleJob(job Job) bool {
-	combined := strings.ToLower(job.Title + " " + job.Link)
+	combined := strings.ToLower(job.Title + " " + job.Link + " " + job.Description)
+	keywordText := strings.ToLower(job.Title + " " + job.Description)
 
 	// Must match at least one keyword
-	if !matchesKeyword(job.Title) {
+	if !matchesKeyword(keywordText) {
 		return false
 	}
 
 	// Must not have excluded keywords (senior, lead, etc.)
-	if hasExcludedKeyword(job.Title) {
+	if hasExcludedKeyword(combined) {
 		return false
 	}
 

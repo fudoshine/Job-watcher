@@ -8,11 +8,12 @@ import (
 )
 
 type Job struct {
-	ID     string    `json:"id"`
-	Title  string    `json:"title"`
-	Link   string    `json:"link"`
-	Source string    `json:"source,omitempty"`
-	Date   time.Time `json:"date,omitempty"` // For date filtering
+	ID          string    `json:"id"`
+	Title       string    `json:"title"`
+	Link        string    `json:"link"`
+	Source      string    `json:"source,omitempty"`
+	Date        time.Time `json:"date,omitempty"`        // For date filtering
+	Description string    `json:"description,omitempty"` // Optional long text
 }
 
 func fetchJobs() ([]Job, error) {

@@ -18,6 +18,7 @@ Job Watcher is a powerful, automated tool designed to help developers find job o
     -   Triplebyte
     -   Company Career Pages (350+ tech companies including startups, mid-size, and enterprises)
     -   Shared Lists (Google Sheets / GitHub Tables)
+-   **JobSpy Integration (Python)**: Optional multi-board scraper for LinkedIn/Indeed/Google/Glassdoor/ZipRecruiter.
 -   **High Performance**: Fetches from all sources in parallel for maximum speed.
 -   **Smart Filtering**:
     -   Keyword matching (titles, skills)
@@ -32,6 +33,7 @@ Job Watcher is a powerful, automated tool designed to help developers find job o
 ## Prerequisites
 
 -   **Go**: Version 1.21 or higher.
+-   **Python**: Version 3.10+ (only if you enable JobSpy).
 -   **Telegram Bot**: You need a Bot Token and Chat ID to receive alerts.
 -   **Ollama** (Optional): Only required if you want AI-powered job scoring and filtering.
 
@@ -48,7 +50,13 @@ Job Watcher is a powerful, automated tool designed to help developers find job o
     go mod download
     ```
 
-3.  **Setup Configuration**:
+3.  **(Optional) Install JobSpy (Python) dependencies**:
+    ```bash
+    python3 -m pip install --upgrade pip
+    pip install -e ./JobSpy
+    ```
+
+4.  **Setup Configuration**:
     -   The project uses `config.yaml` to define search parameters. Modify it to match your skills and preferences.
     -   Create a `.env` file for your secrets (see configuration below).
 
@@ -133,6 +141,7 @@ Key sections include:
 -   `exclude_keywords`: keywords to filter out (e.g., "senior", "lead").
 -   `max_experience_years`: Maximum experience required for the job.
 -   `sources`: Enable/disable specific job sources.
+-   `jobspy`: JobSpy (Python) scraper settings (sites, search term, location).
 -   `ai`: Configuration for AI scoring (enabled/disabled, model name, threshold).
 
 ## Usage

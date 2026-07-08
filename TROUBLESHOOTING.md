@@ -61,6 +61,11 @@
 - **Status**: Working via RSS feeds
 - **Note**: RSS URLs in config.yaml must be valid
 
+#### JobSpy (Python)
+- **Status**: Optional multi-board scraper
+- **Error**: `JobSpy import failed` or missing module
+- **Fix**: `python3 -m pip install --upgrade pip && pip install -e ./JobSpy` and ensure `python3` is on PATH (or set `JOBSPY_PYTHON`)
+
 ### Solutions Applied
 
 1. **Better Error Handling**

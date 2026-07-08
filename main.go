@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,6 +22,7 @@ type Config struct {
 	MaxExperienceYears int             `yaml:"max_experience_years"`
 	IndeedRSS          []string        `yaml:"indeed_rss"`
 	Sources            map[string]bool `yaml:"sources"`
+	JobSpy             JobSpyConfig    `yaml:"jobspy"`
 	AI                 AIConfig        `yaml:"ai"`             // New AI config
 	RetentionDays      int             `yaml:"retention_days"` // Days to keep job history
 	MaxDaysOld         int             `yaml:"max_days_old"`   // Filter jobs older than X days
@@ -216,6 +218,19 @@ func main() {
 		mu.Unlock()
 	}
 
+	jobSpySites := configuredJobSpySites(cfg)
+	if len(jobSpySites) > 0 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if jobSpyJobs, err := fetchJobSpyJobsForSites(cfg, jobSpySites); err == nil {
+				addJobs(fmt.Sprintf("JobSpy (%s)", strings.Join(jobSpySites, ", ")), jobSpyJobs)
+			} else {
+				fmt.Printf("  Warning: JobSpy failed: %v\n", err)
+			}
+		}()
+	}
+
 	// RemoteOK
 	if cfg.Sources["remoteok"] {
 		wg.Add(1)
@@ -250,7 +265,7 @@ func main() {
 	}
 
 	// Indeed
-	if cfg.Sources["indeed"] {
+	if cfg.Sources["indeed"] && !hasJobSpySite(jobSpySites, "indeed") {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -261,7 +276,7 @@ func main() {
 	}
 
 	// LinkedIn
-	if cfg.Sources["linkedin"] {
+	if cfg.Sources["linkedin"] && !hasJobSpySite(jobSpySites, "linkedin") {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -272,7 +287,7 @@ func main() {
 	}
 
 	// Naukri
-	if cfg.Sources["naukri"] {
+	if cfg.Sources["naukri"] && !hasJobSpySite(jobSpySites, "naukri") {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

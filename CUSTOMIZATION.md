@@ -70,7 +70,27 @@ sources:
   hnjobs: false  # Disabled
 ```
 
-## 6. Date Filtering
+## 6. JobSpy (Python) Settings
+**File:** `config.yaml` -> `jobspy`
+
+If you enable `sources.jobspy: true`, configure the JobSpy search input:
+
+```yaml
+jobspy:
+  sites: [indeed, linkedin, google]
+  search_term: "software engineer OR backend developer"
+  location: "India"
+  country_indeed: "India"
+  hours_old: 120
+```
+
+Install Python deps once:
+```bash
+python3 -m pip install --upgrade pip
+pip install -e ./JobSpy
+```
+
+## 7. Date Filtering
 You can filter out old jobs (only for sources that provide dates, like RemoteOK).
 
 In `config.yaml`:
@@ -80,7 +100,7 @@ max_days_old: 5   # Jobs older than 5 days will be ignored
 ```
 *Note: Scraped sites (career pages) often don't provide reliable dates, so they may default to "new".*
 
-## 7. Adding New Companies
+## 8. Adding New Companies
 To add more career pages to scrape:
 
 1.  Open `companies.go`.
@@ -92,5 +112,5 @@ To add more career pages to scrape:
     -   **Selector**: The CSS selector to find the job link (e.g., `a.job-link`).
     -   **LinkAttr**: The attribute containing the URL (usually `href`).
 
-## 8. Advanced Constraints
+## 9. Advanced Constraints
 You can tweak hardcoded constraints in `filter.go` or `main.go` if you know Go.

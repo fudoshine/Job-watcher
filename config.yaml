@@ -133,6 +133,7 @@ sources:
   indeed: true
   linkedin: true
   naukri: false     # requires JavaScript
+  jobspy: true      # Python-based multi-board scraper (JobSpy)
   instahyre: true   # India-focused, API-based
   companies: true   # 90+ major tech company career pages
   ycjobs: true      # YCombinator startup jobs (workatastartup.com)
@@ -141,10 +142,30 @@ sources:
   triplebyte: false # Triplebyte/Karat - limited public access, often fails
   sharedlists: true # Google Sheets & GitHub Hiring Tables
 
+# JobSpy (Python) - Multi-board scraping
+jobspy:
+  sites:
+    - indeed
+    - linkedin
+    - google
+    - naukri
+    - glassdoor
+    - bayt
+    - bdjobs
+    - zip_recruiter
+  search_term: "software engineer OR backend developer OR full stack developer"
+  google_search_term: "software engineer jobs in India since yesterday"
+  location: "India"
+  country_indeed: "India"
+  results_wanted: 25
+  hours_old: 120
+  linkedin_fetch_description: false
+  is_remote: false
+  python: "python3"
+
 # AI Resume Matching (Optional)
 ai:
-  enabled: true
+  enabled: false
   provider: "ollama"  # Options: "ollama", "gemini"
-  model: "llama3"  # For Ollama: "llama3", for Gemini: "gemini-2.0-flash"
+  model: "llama3.1:latest"  # For Ollama: "llama3", for Gemini: "gemini-2.0-flash"
   threshold: 70       # Only notify if score >= 70
-

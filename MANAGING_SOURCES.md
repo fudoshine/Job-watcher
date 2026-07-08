@@ -33,6 +33,7 @@ This shows each source and how many jobs it returns.
 |--------|--------|----------|-------|
 | Indeed | ✅ Working | 50-100 | RSS feeds, very reliable |
 | LinkedIn | ✅ Working | 10-30 | Guest API, may rate-limit |
+| JobSpy (Python) | ✅ Working | 20-100 | Multi-board scraper (LinkedIn/Indeed/Google/Glassdoor). Requires Python deps |
 | RemoteOK | ⚠️ Premium | 0 | Requires premium account |
 | Wellfound | ❌ JS Required | 0 | Needs JavaScript, disabled |
 | Naukri | ❌ JS Required | 0 | Needs JavaScript, disabled |
@@ -134,6 +135,8 @@ In `companies.go`, comment out entire batches:
 ### Strategy 1: Focus on High-Value Sources
 
 Keep only the most reliable sources:
+
+**Tip:** If you enable `jobspy`, consider disabling the built-in `linkedin`/`indeed` sources to reduce duplicates.
 
 ```yaml
 sources:
