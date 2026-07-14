@@ -156,6 +156,7 @@ jobspy:
   search_term: "software engineer OR backend developer OR full stack developer"
   google_search_term: "software engineer jobs in India since yesterday"
   location: "India"
+  distance: 50
   country_indeed: "India"
   results_wanted: 25
   hours_old: 120

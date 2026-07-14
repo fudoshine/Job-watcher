@@ -143,6 +143,7 @@ func fetchJobSpyJobsForSites(cfg Config, sites []string) ([]Job, error) {
 	if err != nil {
 		return nil, fmt.Errorf("jobspy runner failed: %w: %s", err, strings.TrimSpace(stderr.String()))
 	}
+	reportJobSpyDiagnostics(stderr.String())
 
 	var records []jobSpyRecord
 	if err := json.Unmarshal(output, &records); err != nil {
@@ -157,6 +158,41 @@ func fetchJobSpyJobsForSites(cfg Config, sites []string) ([]Job, error) {
 	}
 
 	return jobs, nil
+}
+
+// reportJobSpyDiagnostics surfaces source-level errors emitted by the Python
+// scrapers even when the overall runner succeeds with an empty JSON array.
+func reportJobSpyDiagnostics(raw string) {
+	const maxLines = 5
+	const maxLineLength = 600
+
+	diagnostics := make([]string, 0, maxLines)
+	for _, line := range strings.Split(raw, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		lower := strings.ToLower(line)
+		if !strings.Contains(lower, "error") &&
+			!strings.Contains(lower, "warning") &&
+			!strings.Contains(lower, "recaptcha") &&
+			!strings.Contains(lower, "traceback") {
+			continue
+		}
+
+		if len(line) > maxLineLength {
+			line = line[:maxLineLength] + "…"
+		}
+		diagnostics = append(diagnostics, line)
+		if len(diagnostics) == maxLines {
+			break
+		}
+	}
+
+	for _, diagnostic := range diagnostics {
+		fmt.Printf("  Warning: JobSpy diagnostic: %s\n", diagnostic)
+	}
 }
 
 func normalizeJobSpySites(sites []string) []string {

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -13,6 +14,7 @@ import (
 // fetchNaukriJobs tries to scrape Naukri - may be limited without JS
 func fetchNaukriJobs() ([]Job, error) {
 	var allJobs []Job
+	var failures []string
 
 	searches := []string{
 		"software-engineer-fresher",
@@ -24,6 +26,7 @@ func fetchNaukriJobs() ([]Job, error) {
 		url := fmt.Sprintf("https://www.naukri.com/%s-jobs?experience=0-1&jobAge=1", search)
 		jobs, err := scrapeNaukriPage(url)
 		if err != nil {
+			failures = append(failures, err.Error())
 			continue
 		}
 		allJobs = append(allJobs, jobs...)
@@ -40,18 +43,25 @@ func fetchNaukriJobs() ([]Job, error) {
 	}
 
 	if len(unique) == 0 {
-		fmt.Println("  Note: Naukri requires JavaScript - 0 jobs found via HTTP")
+		if len(failures) > 0 {
+			return nil, fmt.Errorf("all Naukri searches failed: %s", strings.Join(failures, "; "))
+		}
+		return nil, fmt.Errorf("no Naukri job cards found; the page may require JavaScript or its markup changed")
 	}
 
 	return unique, nil
 }
 
 func scrapeNaukriPage(url string) ([]Job, error) {
-	req, _ := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36")
 	req.Header.Set("Accept", "text/html,application/xhtml+xml")
 
-	resp, err := http.DefaultClient.Do(req)
+	client := &http.Client{Timeout: 20 * time.Second}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +71,10 @@ func scrapeNaukriPage(url string) ([]Job, error) {
 		return nil, fmt.Errorf("status %d", resp.StatusCode)
 	}
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(body)))
 	if err != nil {
 		return nil, err
@@ -100,6 +113,10 @@ func scrapeNaukriPage(url string) ([]Job, error) {
 			Source: "Naukri",
 		})
 	})
+
+	if len(jobs) == 0 {
+		return nil, fmt.Errorf("no job listing links found; the page may require JavaScript or its markup changed")
+	}
 
 	return jobs, nil
 }

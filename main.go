@@ -186,6 +186,15 @@ func sendTelegram(msg string) {
 }
 
 func main() {
+	// Health checks deliberately avoid notifications and jobs.json writes.
+	if len(os.Args) > 1 && os.Args[1] == "--test-sources" {
+		cfg = loadConfig()
+		if len(cfg.Keywords) > 0 {
+			initKeywords(cfg)
+		}
+		os.Exit(testSources(cfg, os.Args[2:]))
+	}
+
 	// Load .env file for Telegram credentials
 	if err := godotenv.Load(); err != nil {
 		fmt.Println("Note: No .env file found, using environment variables")
@@ -260,6 +269,8 @@ func main() {
 			defer wg.Done()
 			if wellfoundJobs, err := fetchWellfoundJobs(); err == nil {
 				addJobs("Wellfound", wellfoundJobs)
+			} else {
+				fmt.Printf("  Warning: Wellfound failed: %v\n", err)
 			}
 		}()
 	}
@@ -271,6 +282,8 @@ func main() {
 			defer wg.Done()
 			if indeedJobs, err := fetchIndeedJobs(cfg.IndeedRSS); err == nil {
 				addJobs("Indeed", indeedJobs)
+			} else {
+				fmt.Printf("  Warning: Indeed failed: %v\n", err)
 			}
 		}()
 	}
@@ -293,6 +306,8 @@ func main() {
 			defer wg.Done()
 			if naukriJobs, err := fetchNaukriJobs(); err == nil {
 				addJobs("Naukri", naukriJobs)
+			} else {
+				fmt.Printf("  Warning: Naukri failed: %v\n", err)
 			}
 		}()
 	}

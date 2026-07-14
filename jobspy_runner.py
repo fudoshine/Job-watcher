@@ -82,7 +82,9 @@ def main():
         search_term=args.search_term,
         google_search_term=args.google_search_term,
         location=args.location,
-        distance=args.distance,
+        # Passing None overrides JobSpy's own default and generates an invalid
+        # Indeed GraphQL value ("radius: None").
+        distance=args.distance if args.distance is not None else 50,
         is_remote=args.is_remote,
         job_type=args.job_type,
         easy_apply=args.easy_apply,

@@ -8,6 +8,7 @@ from typing import Optional
 
 import regex as re
 import requests
+from bs4 import BeautifulSoup
 
 from jobspy.exception import NaukriException
 from jobspy.naukri.constant import headers as naukri_headers
@@ -39,6 +40,7 @@ log = create_logger("Naukri")
 
 class Naukri(Scraper):
     base_url = "https://www.naukri.com/jobapi/v3/search"
+    search_page_url = "https://www.naukri.com/{seo_key}"
     delay = 3
     band_delay = 4
     jobs_per_page = 20  
@@ -49,16 +51,18 @@ class Naukri(Scraper):
         """
         Initializes NaukriScraper with the Naukri API URL
         """
-        super().__init__(Site.NAUKRI, proxies=proxies, ca_cert=ca_cert)
+        super().__init__(Site.NAUKRI, proxies=proxies, ca_cert=ca_cert, user_agent=user_agent)
         self.session = create_session(
             proxies=self.proxies,
             ca_cert=ca_cert,
-            is_tls=False,
+            is_tls=True,
             has_retry=True,
             delay=5,
             clear_cookies=True,
         )
         self.session.headers.update(naukri_headers)
+        if self.user_agent:
+            self.session.headers["user-agent"] = self.user_agent
         self.scraper_input = None
         self.country = "India"  #naukri is india-focused by default
         log.info("Naukri scraper initialized")
@@ -111,16 +115,18 @@ class Naukri(Scraper):
                 if response.status_code not in range(200, 400):
                     err = f"Naukri API response status code {response.status_code} - {response.text}"
                     log.error(err)
+                    if response.status_code == 406 or "recaptcha" in response.text.lower():
+                        return JobResponse(jobs=self._scrape_public_search_page(scraper_input))
                     return JobResponse(jobs=job_list)
                 data = response.json()
                 job_details = data.get("jobDetails", [])
                 log.info(f"Received {len(job_details)} job entries from API")
                 if not job_details:
                     log.warning("No job details found in API response")
-                    break
+                    return JobResponse(jobs=self._scrape_public_search_page(scraper_input))
             except Exception as e:
                 log.error(f"Naukri API request failed: {str(e)}")
-                return JobResponse(jobs=job_list)
+                return JobResponse(jobs=self._scrape_public_search_page(scraper_input))
 
             for job in job_details:
                 job_id = job.get("jobId")
@@ -148,6 +154,76 @@ class Naukri(Scraper):
         job_list = job_list[:scraper_input.results_wanted]
         log.info(f"Scraping completed. Total jobs collected: {len(job_list)}")
         return JobResponse(jobs=job_list)
+
+    def _scrape_public_search_page(self, scraper_input: ScraperInput) -> list[JobPost]:
+        """
+        Fallback scraper that parses the public Naukri search page HTML.
+        This avoids the recaptcha-blocked API endpoint when the public page is still accessible.
+        """
+        search_term = scraper_input.search_term or "software engineer"
+        seo_key = f"{search_term.lower().replace(' ', '-')}-jobs"
+        search_url = self.search_page_url.format(seo_key=seo_key)
+        params = {
+            "experience": "0-1",
+            "jobAge": "1",
+        }
+        if scraper_input.location:
+            params["location"] = scraper_input.location
+        if scraper_input.is_remote:
+            params["remote"] = "true"
+
+        try:
+            response = self.session.get(search_url, params=params, timeout=10)
+            if response.status_code not in range(200, 400):
+                log.error(
+                    f"Naukri public page response status code {response.status_code} - {response.text}"
+                )
+                return []
+            html = response.text
+        except Exception as e:
+            log.error(f"Naukri public page request failed: {str(e)}")
+            return []
+
+        if "recaptcha" in html.lower():
+            log.error("Naukri public search page still requires recaptcha")
+            return []
+
+        soup = BeautifulSoup(html, "html.parser")
+        jobs: list[JobPost] = []
+        seen_ids: set[str] = set()
+
+        for link in soup.select("a[href*='job-listings']"):
+            href = link.get("href") or ""
+            title = link.get_text(" ", strip=True)
+            if not href or not title or len(title) > 150:
+                continue
+
+            if not href.startswith("http"):
+                href = f"https://www.naukri.com{href}"
+
+            job_id_match = re.search(r"-(\d+)(?:\?|$)", href)
+            job_id = job_id_match.group(1) if job_id_match else href
+            if job_id in seen_ids:
+                continue
+            seen_ids.add(job_id)
+
+            jobs.append(
+                JobPost(
+                    id=f"nk-html-{job_id}",
+                    title=title,
+                    company_name=None,
+                    job_url=href,
+                    location=None,
+                    description=None,
+                    emails=None,
+                )
+            )
+
+            if len(jobs) >= scraper_input.results_wanted:
+                break
+
+        log.info(f"Public page fallback collected {len(jobs)} jobs")
+        return jobs
 
     def _process_job(
         self, job: dict, job_id: str, full_descr: bool
